@@ -396,42 +396,36 @@
             }
             
             // Load payment settings
-            try {
-                const docRef = doc(db, "settings", "paymentMethod");
-                const docSnap = await getDoc(docRef);
-                let upiId = "7775965170@naviaxis"; // Default
-                
-                if (docSnap.exists()) {
-                    upiId = docSnap.data().upiId || upiId;
-                }
-                
-                // Show payment page with Indian UPI QR
-                document.getElementById('paymentAmount').textContent = formatIndianCurrency(amount);
-                document.getElementById('paymentUpiId').textContent = upiId;
-                
-                // Generate UPI payment URL
-                const upiUrl = `upi://pay?pa=${upiId}&pn=DG%20Marketplace&am=${amount}&tn=Add%20Funds%20for%20${currentUser.email}&cu=INR`;
-                
-                // Generate QR Code
-                const qrContainer = document.getElementById('qrCode');
-                qrContainer.innerHTML = '';
-                
-                QRCode.toCanvas(qrContainer, upiUrl, { 
-                    width: 250, 
-                    margin: 2,
-                    color: {
-                        dark: '#1e3c72',
-                        light: '#ffffff'
-                    }
-                }, function(error) {
-                    if (error) console.error(error);
-                });
-                
-                show('paymentPage');
-            } catch (error) {
-                alert("Error loading payment settings: " + error.message);
-            }
+try {
+    // हमेशा fixed UPI ID use करें
+    const fixedUpiId = "7775965170@naviaxis";
+    
+    // Show payment page with Indian UPI QR
+    document.getElementById('paymentAmount').textContent = formatIndianCurrency(amount);
+    document.getElementById('paymentUpiId').textContent = fixedUpiId;
+    
+    // Generate UPI payment URL with FIXED UPI ID
+    const upiUrl = `upi://pay?pa=7775965170@naviaxis&pn=DG%20Marketplace&am=${amount}&tn=Add%20Funds%20for%20${currentUser.email}&cu=INR`;
+    
+    // Generate QR Code for FIXED UPI ID
+    const qrContainer = document.getElementById('qrCode');
+    qrContainer.innerHTML = '';
+    
+    QRCode.toCanvas(qrContainer, upiUrl, { 
+        width: 250, 
+        margin: 2,
+        color: {
+            dark: '#1e3c72',
+            light: '#ffffff'
         }
+    }, function(error) {
+        if (error) console.error(error);
+    });
+    
+    show('paymentPage');
+} catch (error) {
+    alert("Error loading payment settings: " + error.message);
+}
 
         // Submit payment proof
         window.submitPaymentProof = async () => {
