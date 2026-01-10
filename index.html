@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DG Marketplace - Premium Social Media Accounts Trading Platform</title>
     
-    <!-- QR Code Library -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <!-- QR Code Library - Fixed URL -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -388,7 +388,7 @@
             }
         }
 
-        // ADD FUNDS Function
+        // ADD FUNDS Function - FIXED QR CODE ISSUE
         window.addFunds = async () => {
             const amount = parseFloat(document.getElementById('addAmount').value);
             if (!amount || amount <= 0) {
@@ -396,36 +396,60 @@
             }
             
             // Load payment settings
-try {
-    // हमेशा fixed UPI ID use करें
-    const fixedUpiId = "7775965170@naviaxis";
-    
-    // Show payment page with Indian UPI QR
-    document.getElementById('paymentAmount').textContent = formatIndianCurrency(amount);
-    document.getElementById('paymentUpiId').textContent = fixedUpiId;
-    
-    // Generate UPI payment URL with FIXED UPI ID
-    const upiUrl = `upi://pay?pa=7775965170@naviaxis&pn=DG%20Marketplace&am=${amount}&tn=Add%20Funds%20for%20${currentUser.email}&cu=INR`;
-    
-    // Generate QR Code for FIXED UPI ID
-    const qrContainer = document.getElementById('qrCode');
-    qrContainer.innerHTML = '';
-    
-    QRCode.toCanvas(qrContainer, upiUrl, { 
-        width: 250, 
-        margin: 2,
-        color: {
-            dark: '#1e3c72',
-            light: '#ffffff'
+            try {
+                const docRef = doc(db, "settings", "paymentMethod");
+                const docSnap = await getDoc(docRef);
+                let upiId = "7775965170@naviaxis"; // Default
+                
+                if (docSnap.exists()) {
+                    upiId = docSnap.data().upiId || upiId;
+                }
+                
+                // Show payment page with Indian UPI QR
+                document.getElementById('paymentAmount').textContent = formatIndianCurrency(amount);
+                document.getElementById('paymentUpiId').textContent = upiId;
+                
+                // Generate UPI payment URL
+                const upiUrl = `upi://pay?pa=${upiId}&pn=DG%20Marketplace&am=${amount}&tn=Add%20Funds%20for%20${currentUser.email}&cu=INR`;
+                
+                // Generate QR Code - FIXED USING qrcodejs LIBRARY
+                const qrContainer = document.getElementById('qrCode');
+                qrContainer.innerHTML = '';
+                
+                // Check if QRCode library is available
+                if (typeof QRCode === 'undefined') {
+                    console.error("QRCode library not loaded!");
+                    alert("QR Code functionality is not available. Please refresh the page.");
+                    return;
+                }
+                
+                // Generate QR code using qrcodejs
+                try {
+                    new QRCode(qrContainer, {
+                        text: upiUrl,
+                        width: 250,
+                        height: 250,
+                        colorDark: "#1e3c72",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                } catch (qrError) {
+                    console.error("QR Code generation error:", qrError);
+                    qrContainer.innerHTML = `
+                        <div style="text-align: center; padding: 20px;">
+                            <i class="fas fa-exclamation-triangle fa-3x" style="color: var(--warning);"></i>
+                            <p>QR Code generation failed. Please use manual UPI transfer.</p>
+                            <p><strong>UPI ID:</strong> ${upiId}</p>
+                            <p><strong>Amount:</strong> ${formatIndianCurrency(amount)}</p>
+                        </div>
+                    `;
+                }
+                
+                show('paymentPage');
+            } catch (error) {
+                alert("Error loading payment settings: " + error.message);
+            }
         }
-    }, function(error) {
-        if (error) console.error(error);
-    });
-    
-    show('paymentPage');
-} catch (error) {
-    alert("Error loading payment settings: " + error.message);
-}
 
         // Submit payment proof
         window.submitPaymentProof = async () => {
@@ -3088,33 +3112,62 @@ try {
         </div>
     </div>
 
-    <!-- Mobile Menu -->
+    <!-- Mobile Menu with Premium and Profile -->
     <div class="mobile-menu" id="mobileMenu">
         <div class="mobile-menu-header">
             <h3>Menu</h3>
             <button class="close-menu" onclick="closeMenu()">×</button>
         </div>
         <div class="menu-items">
+            <!-- User Profile Section in Menu -->
+            <div style="display: flex; align-items: center; gap: 15px; padding: 15px 20px; background: var(--light-gray); border-radius: var(--radius-lg); margin-bottom: 15px;">
+                <div class="profile-icon" id="mobileProfileIcon" onclick="show('profile'); closeMenu();" style="width: 50px; height: 50px;">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div style="font-weight: bold; color: var(--primary-blue);" id="mobileUserName">User</div>
+                    <div style="font-size: 12px; color: var(--dark-gray);" id="mobileUserEmail">user@example.com</div>
+                    <div style="font-size: 12px; color: var(--success); font-weight: bold;" id="mobileUserWallet">₹0.00</div>
+                </div>
+            </div>
+            
+            <!-- Premium Section -->
+            <div style="margin: 15px 0;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <i class="fas fa-crown" style="color: gold; font-size: 20px;"></i>
+                    <h4 style="margin: 0; color: var(--primary-blue);">Premium Features</h4>
+                </div>
+                <a href="#" class="menu-item" onclick="show('addFundsPage'); closeMenu();">
+                    <i class="fas fa-plus-circle" style="color: var(--success);"></i> Add Funds
+                </a>
+                <a href="#" class="menu-item" onclick="show('walletPage'); closeMenu();">
+                    <i class="fas fa-wallet" style="color: var(--primary-blue);"></i> Wallet
+                </a>
+                <a href="#" class="menu-item" onclick="show('withdrawPage'); closeMenu();">
+                    <i class="fas fa-money-bill-wave" style="color: var(--warning);"></i> Withdraw
+                </a>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <!-- Regular Menu Items -->
             <a href="#" class="menu-item" onclick="show('buyerDashboard'); closeMenu();">
                 <i class="fas fa-home"></i> Dashboard
             </a>
             <a href="#" class="menu-item" onclick="show('sellerDashboard'); closeMenu();">
                 <i class="fas fa-store"></i> Sell Accounts
             </a>
-            <a href="#" class="menu-item" onclick="show('walletPage'); closeMenu();">
-                <i class="fas fa-wallet"></i> Wallet
-            </a>
             <a href="#" class="menu-item" onclick="show('history'); closeMenu();">
                 <i class="fas fa-history"></i> History
             </a>
             <a href="#" class="menu-item" onclick="show('profile'); closeMenu();">
-                <i class="fas fa-user"></i> Profile
+                <i class="fas fa-user"></i> Profile Settings
             </a>
             <a href="#" class="menu-item" onclick="show('supportPage'); closeMenu();">
                 <i class="fas fa-headset"></i> Support
             </a>
             <div class="divider"></div>
-            <a href="#" class="menu-item" onclick="logout(); closeMenu();">
+            <a href="#" class="menu-item" onclick="logout(); closeMenu();" style="background: var(--danger); color: white;">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
         </div>
@@ -3567,7 +3620,7 @@ try {
         </div>
     </div>
 
-    <!-- PAYMENT PAGE -->
+    <!-- PAYMENT PAGE - Integrated with your QR code -->
     <div class="dashboard" id="paymentPage" style="display: none;">
         <div class="dashboard-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div>
@@ -3963,6 +4016,32 @@ try {
     </div>
 
     <script>
+        // Update mobile menu user info
+        function updateMobileMenuUserInfo() {
+            if (currentUser && userData) {
+                document.getElementById('mobileUserName').textContent = userData.name || currentUser.displayName || 'User';
+                document.getElementById('mobileUserEmail').textContent = currentUser.email;
+                document.getElementById('mobileUserWallet').textContent = formatIndianCurrency(userWallet);
+                
+                // Update mobile profile icon
+                const mobileProfileIcon = document.getElementById('mobileProfileIcon');
+                const initials = (userData.name || currentUser.displayName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                mobileProfileIcon.textContent = initials || '👤';
+                
+                // Update mobile profile icon with photo if available
+                if (userData.profilePhoto) {
+                    mobileProfileIcon.innerHTML = `<img src="${userData.profilePhoto}" alt="Profile" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+                }
+            }
+        }
+
+        // Update the loadUserData function to call updateMobileMenuUserInfo
+        const originalLoadUserData = window.loadUserData;
+        window.loadUserData = async function(uid) {
+            await originalLoadUserData(uid);
+            updateMobileMenuUserInfo();
+        };
+
         // Preview images function
         window.previewImages = (input) => {
             // Simple image count validation
